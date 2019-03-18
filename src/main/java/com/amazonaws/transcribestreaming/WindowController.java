@@ -213,9 +213,9 @@ public class WindowController {
                             String displayText;
                             if (!firstResult.isPartial()) {
                                 finalTranscript += transcript + " ";
-                                displayText = finalTranscript;
+                                displayText = transcript;
                             } else {
-                                displayText = finalTranscript + " " + transcript;
+                                displayText = transcript;
                             }
                             Platform.runLater(() -> {
                                 outputTextArea.setText(displayText);
