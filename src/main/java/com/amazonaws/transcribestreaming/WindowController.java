@@ -23,7 +23,6 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextArea;
-import javafx.scene.control.TextField;
 import javafx.scene.layout.*;
 import javafx.scene.text.Text;
 import javafx.stage.FileChooser;
@@ -32,7 +31,7 @@ import software.amazon.awssdk.services.transcribestreaming.model.Result;
 import software.amazon.awssdk.services.transcribestreaming.model.StartStreamTranscriptionResponse;
 import software.amazon.awssdk.services.transcribestreaming.model.TranscriptEvent;
 import software.amazon.awssdk.services.transcribestreaming.model.TranscriptResultStream;
-
+import javafx.scene.text.Font;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -190,9 +189,11 @@ public class WindowController {
         Text inProgressText = new Text("In Progress Transcriptions:");
         gridPane.add(inProgressText, 0, 1, 2, 1);
 
-        outputTextArea = new TextArea();
-        outputTextArea.setWrapText(true);
-        outputTextArea.setEditable(false);
+        outputTextArea = buildOutputTextArea();
+
+        Font font = new Font("Verdana", 64);
+        outputTextArea.setFont(font);
+
         gridPane.add(outputTextArea, 0, 2, 2, 1);
     }
 
@@ -207,9 +208,7 @@ public class WindowController {
         Text inProgressText = new Text("In Progress Transcriptions:");
         gridPane.add(inProgressText, 0, 1, 2, 1);
 
-        outputTextArea = new TextArea();
-        outputTextArea.setWrapText(true);
-        outputTextArea.setEditable(false);
+        outputTextArea = buildOutputTextArea();
         gridPane.add(outputTextArea, 0, 2, 2, 1);
 
         Text finalText = new Text("Final Transcription:");
@@ -244,6 +243,16 @@ public class WindowController {
         });
 
         return button;
+    }
+
+    private TextArea buildOutputTextArea() {
+
+        TextArea textArea = new TextArea();
+
+        textArea.setWrapText(true);
+        textArea.setEditable(false);
+
+        return textArea;
     }
 
     private Button buildStartStopMicControl(String label) {
@@ -363,6 +372,7 @@ public class WindowController {
                 Platform.runLater(() -> {
 
                     setContentOfFinalTextArea(finalTranscript);
+                    outputTextArea.clear();
 
                     System.out.println("Debugging start...");
                     System.out.println(finalTranscript);
