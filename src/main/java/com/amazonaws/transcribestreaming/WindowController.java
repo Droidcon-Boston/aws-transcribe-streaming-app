@@ -23,7 +23,8 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextArea;
-import javafx.scene.layout.GridPane;
+import javafx.scene.control.TextField;
+import javafx.scene.layout.*;
 import javafx.scene.text.Text;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
@@ -47,11 +48,13 @@ import java.util.concurrent.ExecutionException;
  */
 public class WindowController {
 
+    private static final double WINDOW_WIDTH = 800;
+    private static final double WINDOW_HEIGHT = 1200;
+
     private TranscribeStreamingClientWrapper client;
     private TranscribeStreamingSynchronousClient synchronousClient;
     private TextArea outputTextArea;
     private Button startStopMicButton;
-    private Button fileStreamButton;
     private Button saveButton;
     private TextArea finalTextArea;
     private CompletableFuture<Void> inProgressStreamingRequest;
@@ -59,104 +62,60 @@ public class WindowController {
     private Stage primaryStage;
 
     public WindowController(Stage primaryStage) {
+
         client = new TranscribeStreamingClientWrapper();
         synchronousClient = new TranscribeStreamingSynchronousClient(TranscribeStreamingClientWrapper.getClient());
+
         this.primaryStage = primaryStage;
-        initializeWindow(primaryStage);
+        initializeWindowWithInProgressTranscription(primaryStage);
     }
 
-    public void close() {
-        if (inProgressStreamingRequest != null) {
-            inProgressStreamingRequest.completeExceptionally(new InterruptedException());
-        }
-        client.close();
-    }
-
+    /**
+     * Transcription related methods and logic
+     */
     private void startFileTranscriptionRequest(File inputFile) {
+
         if (inProgressStreamingRequest == null) {
-            finalTextArea.clear();
+
+            cleanFinalTextArea();
             finalTranscript = "";
             startStopMicButton.setText("Streaming...");
             startStopMicButton.setDisable(true);
             outputTextArea.clear();
-            finalTextArea.clear();
-            saveButton.setDisable(true);
+
+            cleanFinalTextArea();
+            disableSaveButton(true);
+
             finalTranscript = synchronousClient.transcribeFile(inputFile);
-            finalTextArea.setText(finalTranscript);
+            setContentOfFinalTextArea(finalTranscript);
             startStopMicButton.setDisable(false);
-            saveButton.setDisable(false);
+            disableSaveButton(false);
+
             startStopMicButton.setText("Start Microphone Transcription");
         }
     }
 
     private void startTranscriptionRequest(File inputFile) {
+
         if (inProgressStreamingRequest == null) {
-            finalTextArea.clear();
+
+            cleanFinalTextArea();
             finalTranscript = "";
             startStopMicButton.setText("Connecting...");
             startStopMicButton.setDisable(true);
             outputTextArea.clear();
-            finalTextArea.clear();
-            saveButton.setDisable(true);
+
+            cleanFinalTextArea();
+            disableSaveButton(true);
+
             inProgressStreamingRequest = client.startTranscription(getResponseHandlerForWindow(), inputFile);
         }
-    }
-
-    private void initializeWindow(Stage primaryStage) {
-        GridPane grid = new GridPane();
-        grid.setAlignment(Pos.CENTER);
-        grid.setVgap(10);
-        grid.setHgap(10);
-        grid.setPadding(new Insets(25, 25, 25, 25));
-
-        Scene scene = new Scene(grid, 500, 600);
-        primaryStage.setScene(scene);
-
-        startStopMicButton = new Button();
-        startStopMicButton.setText("Start Microphone Transcription");
-        startStopMicButton.setOnAction(__ -> startTranscriptionRequest(null));
-        grid.add(startStopMicButton, 0, 0, 1, 1);
-
-        fileStreamButton = new Button();
-        fileStreamButton.setText("Stream From Audio File"); //TODO: what file types do we support?
-        fileStreamButton.setOnAction(__ -> {
-            FileChooser inputFileChooser = new FileChooser();
-            inputFileChooser.setTitle("Stream Audio File");
-            File inputFile = inputFileChooser.showOpenDialog(primaryStage);
-            if (inputFile != null) {
-                startFileTranscriptionRequest(inputFile);
-            }
-        });
-        grid.add(fileStreamButton, 1, 0, 1, 1);
-
-        Text inProgressText = new Text("In Progress Transcriptions:");
-        grid.add(inProgressText, 0, 1, 2, 1);
-
-        outputTextArea = new TextArea();
-        outputTextArea.setWrapText(true);
-        outputTextArea.setEditable(false);
-        grid.add(outputTextArea, 0, 2, 2, 1);
-
-        Text finalText = new Text("Final Transcription:");
-        grid.add(finalText, 0, 3, 2, 1);
-
-        finalTextArea = new TextArea();
-        finalTextArea.setWrapText(true);
-        finalTextArea.setEditable(false);
-        grid.add(finalTextArea, 0, 4, 2, 1);
-
-        saveButton = new Button();
-        saveButton.setDisable(true);
-        saveButton.setText("Save Full Transcript");
-        grid.add(saveButton, 0, 5, 2, 1);
-
-
     }
 
     private void stopTranscription() {
         if (inProgressStreamingRequest != null) {
             try {
-                saveButton.setDisable(true);
+                disableSaveButton(true);
                 client.stopTranscription();
                 inProgressStreamingRequest.get();
             } catch (ExecutionException | InterruptedException e) {
@@ -169,6 +128,157 @@ public class WindowController {
             }
 
         }
+    }
+
+    /**
+     * UI initialization and handling
+     */
+    private void initializeWindowWithInProgressTranscription(Stage primaryStage) {
+
+        GridPane grid = new GridPane();
+        grid.setGridLinesVisible(true);
+
+        gridSetup(grid); // Building my grid elements here (2 columns)
+
+        // Setting columns size in percent
+        ColumnConstraints column = new ColumnConstraints();
+        column.setPercentWidth(30);
+        grid.getColumnConstraints().add(column);
+
+        column = new ColumnConstraints();
+        column.setPercentWidth(70);
+        grid.getColumnConstraints().add(column);
+
+        grid.setPrefSize(WINDOW_WIDTH, WINDOW_HEIGHT); // Default width and height
+        grid.setMaxSize(Region.USE_COMPUTED_SIZE, Region.USE_COMPUTED_SIZE);
+
+        Scene scene = new Scene(grid, WINDOW_WIDTH, WINDOW_HEIGHT);
+        primaryStage.setScene(scene);
+        primaryStage.show();
+    }
+
+    private void initializeWindowWithStreamFromFileAndFullTranscript(Stage primaryStage) {
+
+        GridPane gridPane = new GridPane();
+        gridPane.setAlignment(Pos.CENTER);
+        gridPane.setVgap(10);
+        gridPane.setHgap(10);
+
+        GridPane.setHgrow(gridPane, Priority.ALWAYS);
+
+        HBox hboxContainer  = new HBox(gridPane);
+        hboxContainer.setAlignment(Pos.CENTER);
+        hboxContainer.setPadding(new Insets(10));
+
+        // Set Hgrow for TextField
+        HBox.setHgrow(gridPane, Priority.ALWAYS);
+
+        BorderPane pane = new BorderPane();
+        pane.setCenter(hboxContainer);
+
+        Scene scene = new Scene(pane, 1000, 600);
+        primaryStage.setScene(scene);
+
+        fullGridSetup(gridPane);
+    }
+
+    private void gridSetup(GridPane gridPane) {
+
+        startStopMicButton = buildStartStopMicControl("Start Microphone Transcription");
+        gridPane.add(startStopMicButton, 0, 0, 1, 1);
+
+        Text inProgressText = new Text("In Progress Transcriptions:");
+        gridPane.add(inProgressText, 0, 1, 2, 1);
+
+        outputTextArea = new TextArea();
+        outputTextArea.setWrapText(true);
+        outputTextArea.setEditable(false);
+        gridPane.add(outputTextArea, 0, 2, 2, 1);
+    }
+
+    private void fullGridSetup(GridPane gridPane) {
+
+        startStopMicButton = buildStartStopMicControl("Start Microphone Transcription");
+        gridPane.add(startStopMicButton, 0, 0, 1, 1);
+
+        Button fileStreamButton = buildFileStreamControl("Stream From Audio File");
+        gridPane.add(fileStreamButton, 1, 0, 1, 1);
+
+        Text inProgressText = new Text("In Progress Transcriptions:");
+        gridPane.add(inProgressText, 0, 1, 2, 1);
+
+        outputTextArea = new TextArea();
+        outputTextArea.setWrapText(true);
+        outputTextArea.setEditable(false);
+        gridPane.add(outputTextArea, 0, 2, 2, 1);
+
+        Text finalText = new Text("Final Transcription:");
+        gridPane.add(finalText, 0, 3, 2, 1);
+
+        finalTextArea = new TextArea();
+        finalTextArea.setWrapText(true);
+        finalTextArea.setEditable(false);
+        gridPane.add(finalTextArea, 0, 4, 2, 1);
+
+        saveButton = new Button();
+        saveButton.setDisable(true);
+        saveButton.setText("Save Full Transcript");
+        gridPane.add(saveButton, 0, 5, 2, 1);
+
+    }
+
+    private Button buildFileStreamControl(String label) {
+
+        Button button = new Button();
+
+        button.setText(label);
+
+        //TODO: what file types do we support?
+        button.setOnAction(__ -> {
+            FileChooser inputFileChooser = new FileChooser();
+            inputFileChooser.setTitle(label);
+            File inputFile = inputFileChooser.showOpenDialog(primaryStage);
+            if (inputFile != null) {
+                startFileTranscriptionRequest(inputFile);
+            }
+        });
+
+        return button;
+    }
+
+    private Button buildStartStopMicControl(String label) {
+
+        Button button = new Button();
+
+        button.setText(label);
+        button.setOnAction(__ -> startTranscriptionRequest(null));
+
+        return button;
+    }
+
+    private void cleanFinalTextArea() {
+        if(finalTextArea != null) {
+            finalTextArea.clear();
+        }
+    }
+
+    private void setContentOfFinalTextArea(String content) {
+        if(finalTextArea != null) {
+            finalTextArea.setText(content);
+        }
+    }
+
+    private void disableSaveButton(Boolean status) {
+        if(saveButton != null) {
+            saveButton.setDisable(status);
+        }
+    }
+
+    public void close() {
+        if (inProgressStreamingRequest != null) {
+            inProgressStreamingRequest.completeExceptionally(new InterruptedException());
+        }
+        client.close();
     }
 
     /**
@@ -251,23 +361,31 @@ public class WindowController {
             public void onComplete() {
                 System.out.println("=== All records streamed successfully ===");
                 Platform.runLater(() -> {
-                    finalTextArea.setText(finalTranscript);
-                    saveButton.setDisable(false);
-                    saveButton.setOnAction(__ -> {
-                        FileChooser fileChooser = new FileChooser();
-                        fileChooser.setTitle("Save Transcript");
-                        File file = fileChooser.showSaveDialog(primaryStage);
-                        if (file != null) {
-                            try {
-                                FileWriter writer = new FileWriter(file);
-                                writer.write(finalTranscript);
-                                writer.close();
-                            } catch (IOException e) {
-                                System.out.println("Error saving transcript to file: " + e);
-                            }
-                        }
-                    });
 
+                    setContentOfFinalTextArea(finalTranscript);
+
+                    System.out.println("Debugging start...");
+                    System.out.println(finalTranscript);
+                    System.out.println("Debugging end...");
+
+                    if (saveButton != null) {
+
+                        saveButton.setDisable(false);
+                        saveButton.setOnAction(__ -> {
+                            FileChooser fileChooser = new FileChooser();
+                            fileChooser.setTitle("Save Transcript");
+                            File file = fileChooser.showSaveDialog(primaryStage);
+                            if (file != null) {
+                                try {
+                                    FileWriter writer = new FileWriter(file);
+                                    writer.write(finalTranscript);
+                                    writer.close();
+                                } catch (IOException e) {
+                                    System.out.println("Error saving transcript to file: " + e);
+                                }
+                            }
+                        });
+                    }
                 });
             }
         };
