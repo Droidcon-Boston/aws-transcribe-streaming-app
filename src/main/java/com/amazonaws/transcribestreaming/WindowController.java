@@ -24,6 +24,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextArea;
 import javafx.scene.layout.*;
+import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
@@ -31,7 +32,7 @@ import software.amazon.awssdk.services.transcribestreaming.model.Result;
 import software.amazon.awssdk.services.transcribestreaming.model.StartStreamTranscriptionResponse;
 import software.amazon.awssdk.services.transcribestreaming.model.TranscriptEvent;
 import software.amazon.awssdk.services.transcribestreaming.model.TranscriptResultStream;
-import javafx.scene.text.Font;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -135,7 +136,6 @@ public class WindowController {
     private void initializeWindowWithInProgressTranscription(Stage primaryStage) {
 
         GridPane grid = new GridPane();
-        grid.setGridLinesVisible(true);
 
         gridSetup(grid); // Building my grid elements here (2 columns)
 
