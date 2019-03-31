@@ -48,8 +48,8 @@ import java.util.concurrent.ExecutionException;
  */
 public class WindowController {
 
-    private static final double WINDOW_WIDTH = 800;
-    private static final double WINDOW_HEIGHT = 1200;
+    private static final double WINDOW_WIDTH = 1024;
+    private static final double WINDOW_HEIGHT = 768;
 
     private TranscribeStreamingClientWrapper client;
     private TranscribeStreamingSynchronousClient synchronousClient;
@@ -175,7 +175,7 @@ public class WindowController {
         BorderPane pane = new BorderPane();
         pane.setCenter(hboxContainer);
 
-        Scene scene = new Scene(pane, 1000, 600);
+        Scene scene = new Scene(pane, WINDOW_WIDTH, WINDOW_HEIGHT);
         primaryStage.setScene(scene);
 
         fullGridSetup(gridPane);
@@ -190,6 +190,10 @@ public class WindowController {
         gridPane.add(inProgressText, 0, 1, 2, 1);
 
         outputTextArea = buildOutputTextArea();
+
+        outputTextArea.setBackground(Background.EMPTY);
+        outputTextArea.setStyle("-fx-background-color: #000000;");
+        outputTextArea.setStyle("-fx-control-inner-background:#000000; -fx-highlight-fill: #FFFFFF; -fx-highlight-text-fill: #000000; -fx-text-fill: #FFFFFF;");
 
         Font font = new Font("Verdana", 64);
         outputTextArea.setFont(font);
